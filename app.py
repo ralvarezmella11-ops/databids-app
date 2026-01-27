@@ -1,259 +1,310 @@
 import streamlit as st
 import pandas as pd
 import requests
-import re
+import os
 from datetime import datetime
-from pathlib import Path
-from typing import Optional, Dict
 
-# --- CONSTANTES Y CONFIGURACIÓN ---
-PAGE_CONFIG = {
-    "page_title": "DataBids | Inteligencia Estratégica",
-    "page_icon": "📈",
-    "layout": "wide",
-    "initial_sidebar_state": "collapsed"
-}
+# ==========================================
+# 1. CONFIGURACIÓN INICIAL
+# ==========================================
+st.set_page_config(
+    page_title="DataBids | Inteligencia de Licitaciones",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
 
-DATA_FILE = Path("ventas_databids.csv")
-PRICE_CLP = 20000
+# --- VARIABLES (Aquí pones tus claves directamente) ---
+TELEGRAM_TOKEN = "8501600446:AAHmnOJGs0QIRgDRw---f4-fWMf7xP7Moz0"  # Tu token
+TELEGRAM_CHAT_ID = "7619400780"  # Tu ID
+ADMIN_PASSWORD = "bids2026"
 
-# --- ESTILOS CSS (Inyectados dinámicamente) ---
-CUSTOM_CSS = """
+# ==========================================
+# 2. DISEÑO PREMIUM (CSS AVANZADO)
+# ==========================================
+st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+
+    /* --- GLOBAL --- */
+    .stApp {
+        background-color: #F8FAFC; /* Gris muy suave, más profesional que blanco puro */
+        font-family: 'Inter', sans-serif;
+        color: #1E293B;
+    }
     
-    .stApp { background-color: #FFFFFF; font-family: 'Inter', sans-serif; color: #111827; }
-    h1 { color: #0070F3 !important; font-weight: 800; font-size: 3rem !important; text-align: center; line-height: 1.2; }
-    .subtitle { text-align: center; color: #4B5563; font-size: 1.1rem; max-width: 800px; margin: 0 auto 2rem auto; }
-    
-    /* Cards */
-    .feature-card, .section-card {
-        background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 16px;
+    /* --- BRANDING HEADER --- */
+    .brand-container {
+        text-align: center;
+        padding: 2rem 0 3rem 0;
+    }
+    .brand-logo {
+        font-size: 3.5rem;
+        font-weight: 900;
+        background: -webkit-linear-gradient(45deg, #0F172A, #0070F3);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: -1px;
+        margin-bottom: 0.5rem;
+    }
+    .brand-subtitle {
+        font-size: 1.2rem;
+        color: #64748B;
+        max-width: 700px;
+        margin: 0 auto;
+        line-height: 1.6;
+    }
+
+    /* --- CARDS (Tarjetas) --- */
+    .feature-card {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        height: 100%;
+        border: 1px solid #E2E8F0;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
     }
-    .feature-card { padding: 2rem; height: 100%; }
-    .section-card { padding: 2.5rem; }
-    
-    /* Typography & Icons */
-    .feature-icon { color: #0070F3; font-size: 1.5rem; margin-bottom: 1rem; }
-    .feature-title { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
-    .feature-desc { color: #4B5563; font-size: 0.95rem; }
-    .step-header { font-weight: 700; color: #4B5563; margin-top: 3rem; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.85rem;}
-    
-    /* Pricing */
-    .price-tag { font-size: 2.5rem; font-weight: 800; color: #111827; }
-    .price-currency { font-size: 1.5rem; color: #4B5563; }
-    
-    /* Buttons & Inputs */
-    div.stButton > button, div.stLinkButton > a {
-        background-color: #0070F3 !important; color: white !important; border: none !important;
-        border-radius: 12px !important; padding: 0.75rem 1.5rem !important; font-weight: 600 !important;
-        width: 100%; transition: all 0.2s ease;
+    .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        border-color: #0070F3;
     }
-    div.stButton > button:hover, div.stLinkButton > a:hover {
-        background-color: #005bb5 !important; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,112,243,0.2);
+    .icon-box {
+        width: 50px;
+        height: 50px;
+        background: #EFF6FF;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: #0070F3;
+        margin-bottom: 1.5rem;
     }
-    .stTextInput input { border: 1px solid #D1D5DB !important; border-radius: 8px !important; padding: 0.75rem !important; }
+    .card-title {
+        font-weight: 700;
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+        color: #0F172A;
+    }
+    .card-text {
+        color: #64748B;
+        font-size: 0.95rem;
+        line-height: 1.5;
+    }
+
+    /* --- SECTION CONTAINERS --- */
+    .step-badge {
+        display: inline-block;
+        background: #0F172A;
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 1px;
+        margin-bottom: 1rem;
+        text-transform: uppercase;
+    }
+    .main-card {
+        background: white;
+        border-radius: 20px;
+        padding: 3rem;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+        border: 1px solid #E2E8F0;
+        margin-bottom: 2rem;
+    }
+
+    /* --- PRICE TAG --- */
+    .price-big {
+        font-size: 3rem;
+        font-weight: 800;
+        color: #0F172A;
+        letter-spacing: -1px;
+    }
+    .price-small {
+        font-size: 1.25rem;
+        color: #64748B;
+        font-weight: 500;
+    }
+
+    /* --- BUTTONS & INPUTS --- */
+    .stButton > button {
+        background-color: #0070F3 !important;
+        color: white !important;
+        font-weight: 600 !important;
+        border-radius: 10px !important;
+        padding: 0.75rem 1rem !important;
+        border: none !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 112, 243, 0.2) !important;
+        transition: all 0.2s !important;
+    }
+    .stButton > button:hover {
+        background-color: #005bb5 !important;
+        transform: scale(1.02);
+    }
     
-    /* Utilities */
-    #MainMenu, footer, header { visibility: hidden; }
+    /* Inputs más bonitos */
+    .stTextInput input {
+        border: 2px solid #E2E8F0 !important;
+        border-radius: 10px !important;
+        padding: 0.75rem !important;
+        color: #334155 !important;
+    }
+    .stTextInput input:focus {
+        border-color: #0070F3 !important;
+        box-shadow: 0 0 0 3px rgba(0, 112, 243, 0.1) !important;
+    }
+
+    /* Ocultar elementos default */
+    #MainMenu, footer, header {visibility: hidden;}
     </style>
-"""
+""", unsafe_allow_html=True)
 
-# --- CLASE DE GESTIÓN DE NEGOCIO (BACKEND) ---
-class OrderManager:
-    """Maneja la lógica de persistencia y notificaciones."""
-    
-    def __init__(self, filepath: Path):
-        self.filepath = filepath
-        self._ensure_file_exists()
+# ==========================================
+# 3. LÓGICA DE NEGOCIO (Simple y Directa)
+# ==========================================
 
-    def _ensure_file_exists(self):
-        if not self.filepath.exists():
-            df = pd.DataFrame(columns=["Fecha", "Email", "Empresa", "ID_Lic", "Estado", "Monto"])
-            df.to_csv(self.filepath, sep=';', index=False, encoding='utf-8-sig')
+def save_order(mail, company, id_lic):
+    filename = "ventas_databids.csv"
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+    new_data = pd.DataFrame([[timestamp, mail, company, id_lic, "PAGADO", "20000"]], 
+                            columns=["Fecha", "Email", "Empresa", "ID_Lic", "Estado", "Monto"])
+    try:
+        if os.path.exists(filename):
+            new_data.to_csv(filename, mode='a', header=False, index=False, sep=';', encoding='utf-8-sig')
+        else:
+            new_data.to_csv(filename, index=False, sep=';', encoding='utf-8-sig')
+        return True
+    except PermissionError:
+        return False
 
-    @staticmethod
-    def validate_email(email: str) -> bool:
-        pattern = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
-        return bool(re.match(pattern, email))
+def notify_telegram(mail, company, id_lic):
+    msg = f"🚀 *NUEVO CLIENTE DATABIDS*\n\n🏢 *Empresa:* {company}\n🆔 *Lic:* `{id_lic}`\n📧 *Email:* {mail}\n💰 *Monto:* $20.000"
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    try:
+        requests.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": msg, "parse_mode": "Markdown"})
+    except:
+        pass
 
-    def save_order(self, email: str, company: str, lic_id: str) -> bool:
-        timestamp = datetime.now().strftime("%d-%m-%Y %H:%M")
-        new_row = {
-            "Fecha": timestamp,
-            "Email": email,
-            "Empresa": company,
-            "ID_Lic": lic_id,
-            "Estado": "SOLICITADO",
-            "Monto": str(PRICE_CLP)
-        }
-        try:
-            # Usamos lock file implícito al abrir en append, aunque pandas maneja bien CSVs simples
-            # Para alta concurrencia se recomendaría SQLite
-            df_new = pd.DataFrame([new_row])
-            df_new.to_csv(self.filepath, mode='a', header=False, index=False, sep=';', encoding='utf-8-sig')
-            return True
-        except Exception as e:
-            st.error(f"Error interno I/O: {e}")
-            return False
+# ==========================================
+# 4. INTERFAZ DE USUARIO (FRONTEND)
+# ==========================================
 
-    def notify_telegram(self, email: str, company: str, lic_id: str):
-        # Recuperación segura de secretos
-        try:
-            token = st.secrets["telegram"]["token"]
-            chat_id = st.secrets["telegram"]["chat_id"]
-        except FileNotFoundError:
-            # Fallback silencioso para desarrollo local sin secrets
-            return 
-        except KeyError:
-             st.error("Configuración de secretos incompleta.")
-             return
+# --- HERO SECTION ---
+st.markdown("""
+    <div class="brand-container">
+        <div class="brand-logo">DataBids.</div>
+        <div class="brand-subtitle">
+            Inteligencia estratégica para licitaciones públicas. 
+            Aumenta tu probabilidad de adjudicación con análisis de datos premium.
+        </div>
+    </div>
+""", unsafe_allow_html=True)
 
-        msg = (
-            f"🚀 *NUEVA ORDEN DATABIDS*\n\n"
-            f"🏢 *Empresa:* {company}\n"
-            f"🆔 *Licitación:* `{lic_id}`\n"
-            f"📧 *Email:* {email}\n"
-            f"💰 *Monto:* ${PRICE_CLP:,.0f} CLP"
-        )
-        url = f"https://api.telegram.org/bot{token}/sendMessage"
-        try:
-            requests.post(url, json={"chat_id": chat_id, "text": msg, "parse_mode": "Markdown"}, timeout=5)
-        except requests.RequestException:
-            pass # No interrumpir el flujo de usuario si falla la API
+# --- FEATURES SECTION ---
+c1, c2, c3 = st.columns(3)
 
-# --- COMPONENTES DE UI ---
-def render_header():
-    st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
-    st.markdown("<h1>Informes y análisis estratégicos de licitaciones</h1>", unsafe_allow_html=True)
-    st.markdown(
-        '<p class="subtitle">Optimiza tu participación en Mercado Público con inteligencia de datos. '
-        'Toma decisiones informadas y aumenta tus probabilidades de éxito.</p>', 
-        unsafe_allow_html=True
-    )
-    st.info(f"💡 **Servicio Premium:** Análisis de competencia y factibilidad por **${PRICE_CLP:,.0f} CLP**.")
+with c1:
+    st.markdown("""
+    <div class="feature-card">
+        <div class="icon-box">📊</div>
+        <div class="card-title">Análisis Competitivo</div>
+        <div class="card-text">Descubre los precios históricos y estrategias de tus competidores directos en licitaciones similares.</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-def render_features():
-    col1, col2, col3 = st.columns(3)
-    features = [
-        {"icon": "📊", "title": "Análisis de Competencia", "desc": "Identifica competidores y sus estrategias de precios históricos."},
-        {"icon": "🛡️", "title": "Evaluación de Riesgo", "desc": "Probabilidad de adjudicación basada en variables clave."},
-        {"icon": "📄", "title": "Reportes Detallados", "desc": "Informe PDF completo con gráficos y recomendaciones accionables."}
-    ]
-    
-    for col, feat in zip([col1, col2, col3], features):
-        with col:
-            st.markdown(f"""
-                <div class="feature-card">
-                    <div class="feature-icon">{feat['icon']}</div>
-                    <div class="feature-title">{feat['title']}</div>
-                    <div class="feature-desc">{feat['desc']}</div>
-                </div>
-            """, unsafe_allow_html=True)
+with c2:
+    st.markdown("""
+    <div class="feature-card">
+        <div class="icon-box">🎯</div>
+        <div class="card-title">Score de Probabilidad</div>
+        <div class="card-text">Nuestro algoritmo calcula tus posibilidades reales de éxito basándose en 12 variables clave.</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-def render_payment_section():
-    st.markdown('<div class="step-header">1. PASO INICIAL: PAGO</div>', unsafe_allow_html=True)
+with c3:
+    st.markdown("""
+    <div class="feature-card">
+        <div class="icon-box">📑</div>
+        <div class="card-title">Reporte Ejecutivo</div>
+        <div class="card-text">Recibe un PDF profesional con gráficos, insights y recomendaciones accionables en 24 horas.</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+st.write(" ") # Espacio
+st.write(" ") 
+
+# --- PASO 1: PAGO ---
+col_layout = st.columns([1, 8, 1]) # Centrado
+with col_layout[1]:
+    st.markdown('<div class="step-badge">Paso 1: Pago Seguro</div>', unsafe_allow_html=True)
     with st.container():
-        st.markdown('<div class="section-card">', unsafe_allow_html=True)
-        c1, c2 = st.columns([2, 1])
-        with c1:
-            st.subheader("Realiza tu pago seguro")
+        st.markdown('<div class="main-card">', unsafe_allow_html=True)
+        cols_pay = st.columns([2, 1])
+        with cols_pay[0]:
+            st.subheader("Acceso a DataBids Premium")
+            st.write("Invierte en información, no en suerte.")
             st.markdown("""
-                <ul style="list-style: none; padding: 0; color: #4B5563;">
-                    <li style="margin-bottom: 0.5rem;">✅ Pago único por licitación</li>
-                    <li style="margin-bottom: 0.5rem;">✅ Boleta o factura disponible</li>
-                    <li style="margin-bottom: 0.5rem;">✅ Garantía de entrega en 24h</li>
-                </ul>
-            """, unsafe_allow_html=True)
-        with c2:
-            st.markdown(f'<div style="text-align: right;"><span class="price-tag">${PRICE_CLP:,.0f}</span> <span class="price-currency">CLP</span></div>', unsafe_allow_html=True)
-            st.markdown('<div style="text-align: right; font-size: 0.8rem; color: #6B7280;">Vía MercadoPago</div>', unsafe_allow_html=True)
+            - ✅ **Informe completo en PDF**
+            - ✅ **Factura deducible de impuestos**
+            - ✅ **Soporte prioritario**
+            """)
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.link_button("💳 Proceder al Pago (MercadoPago)", "https://www.mercadopago.cl")
         
-        st.write("")
-        st.link_button("💳 IR A PAGAR AHORA", "https://www.mercadopago.cl") 
+        with cols_pay[1]:
+            st.markdown("""
+            <div style="text-align: right;">
+                <div class="price-big">$20k</div>
+                <div class="price-small">Pesos Chilenos</div>
+                <div style="font-size: 0.8rem; color: #94A3B8; margin-top: 10px;">Pago Único</div>
+            </div>
+            """, unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-def render_form_section(manager: OrderManager):
-    st.markdown('<div class="step-header">2. PASO FINAL: ACTIVACIÓN</div>', unsafe_allow_html=True)
+# --- PASO 2: FORMULARIO ---
+with col_layout[1]:
+    st.markdown('<div class="step-badge">Paso 2: Datos del Proyecto</div>', unsafe_allow_html=True)
     with st.container():
-        st.markdown('<div class="section-card">', unsafe_allow_html=True)
-        st.subheader("Registra la Licitación")
-        st.write("Ingresa los datos para generar tu reporte estratégico.")
+        st.markdown('<div class="main-card">', unsafe_allow_html=True)
+        st.subheader("Configura tu Análisis")
+        st.write("Ingresa los detalles de la licitación para iniciar el motor de inteligencia.")
         
-        with st.form("registro_form", clear_on_submit=True):
-            col_a, col_b = st.columns(2)
-            with col_a:
-                u_mail = st.text_input("Tu Correo Electrónico", placeholder="nombre@empresa.com")
-            with col_b:
-                u_emp = st.text_input("Nombre / Empresa", placeholder="Tu Empresa SpA")
+        with st.form("main_form"):
+            col_inp1, col_inp2 = st.columns(2)
+            with col_inp1:
+                u_mail = st.text_input("Correo Electrónico Corporativo", placeholder="ej: contacto@tuempresa.cl")
+            with col_inp2:
+                u_emp = st.text_input("Razón Social / Empresa", placeholder="ej: Constructora Global SpA")
             
-            u_lic = st.text_input("ID de la Licitación (Mercado Público)", placeholder="Ej: 1234-56-LE24")
+            u_lic = st.text_input("ID de Licitación (Mercado Público)", placeholder="Ej: 5544-22-LE24")
             
-            submitted = st.form_submit_button("🚀 Confirmar y Solicitar Informe")
+            st.markdown("<br>", unsafe_allow_html=True)
+            submitted = st.form_submit_button("🚀 GENERAR INFORME ESTRATÉGICO")
             
             if submitted:
-                if not u_mail or not u_emp or not u_lic:
-                    st.warning("⚠️ Todos los campos son obligatorios.")
-                elif not manager.validate_email(u_mail):
-                    st.error("❌ El correo electrónico ingresado no es válido.")
-                else:
-                    if manager.save_order(u_mail, u_emp, u_lic):
-                        manager.notify_telegram(u_mail, u_emp, u_lic)
+                if u_mail and u_emp and u_lic:
+                    if save_order(u_mail, u_emp, u_lic):
+                        notify_telegram(u_mail, u_emp, u_lic)
+                        st.success("✅ ¡Excelente! Hemos recibido tu solicitud. Tu informe DataBids estará en tu correo en breve.")
                         st.balloons()
-                        st.success(f"✅ ¡Solicitud recibida correctamente! Hemos enviado una confirmación a **{u_mail}**.")
                     else:
-                        st.error("❌ Hubo un error al procesar tu solicitud. Intenta nuevamente.")
+                        st.error("❌ Error: Por favor cierra el archivo Excel si lo tienes abierto en el servidor.")
+                else:
+                    st.warning("⚠️ Por favor completa todos los campos para continuar.")
         st.markdown('</div>', unsafe_allow_html=True)
 
-def render_admin_panel(manager: OrderManager):
-    with st.sidebar:
-        st.divider()
-        with st.expander("🔒 Acceso Administrativo"):
-            pwd = st.text_input("Contraseña", type="password")
-            
-            # Verificación segura con secrets
-            try:
-                admin_pass = st.secrets["admin"]["password"]
-            except KeyError:
-                admin_pass = "admin" # Fallback NO recomendado en prod
-            
-            if pwd == admin_pass:
-                st.success("Acceso Concedido")
-                if manager.filepath.exists():
-                    df = pd.read_csv(manager.filepath, sep=';', encoding='utf-8-sig')
-                    st.dataframe(df)
-                    
-                    # Botón de descarga para el admin
-                    csv = df.to_csv(index=False, sep=';', encoding='utf-8-sig').encode('utf-8-sig')
-                    st.download_button(
-                        label="📥 Descargar CSV",
-                        data=csv,
-                        file_name='ventas_databids.csv',
-                        mime='text/csv',
-                    )
-                else:
-                    st.info("Aún no hay ventas registradas.")
-            elif pwd:
-                st.error("Contraseña incorrecta")
+# --- ADMIN PANEL (Oculto) ---
+with st.sidebar:
+    st.markdown("### 🔒 DataBids Admin")
+    if st.text_input("Access Key", type="password") == ADMIN_PASSWORD:
+        if os.path.exists("ventas_databids.csv"):
+            df = pd.read_csv("ventas_databids.csv", sep=';', encoding='utf-8-sig')
+            st.dataframe(df)
+            csv = df.to_csv(index=False, sep=';', encoding='utf-8-sig')
+            st.download_button("📥 Descargar Base de Datos", csv, "ventas_databids.csv", "text/csv")
+        else:
+            st.info("No hay transacciones recientes.")
 
-# --- MAIN APP FLOW ---
-def main():
-    st.set_page_config(**PAGE_CONFIG)
-    
-    # Inicializar gestor
-    manager = OrderManager(DATA_FILE)
-    
-    # Renderizar UI
-    render_header()
-    st.write("") # Spacer
-    render_features()
-    st.write("") # Spacer
-    render_payment_section()
-    render_form_section(manager)
-    
-    # Admin (oculto en sidebar)
-    render_admin_panel(manager)
-
-if __name__ == "__main__":
-    main()
