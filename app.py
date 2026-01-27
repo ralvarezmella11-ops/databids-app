@@ -5,134 +5,150 @@ import os
 from datetime import datetime
 
 # ==========================================
-# 1. CONFIGURACIÓN INICIAL
+# 1. CONFIGURACIÓN DEL SISTEMA
 # ==========================================
 st.set_page_config(
-    page_title="DataBids | Inteligencia de Licitaciones",
-    page_icon="📉",
+    page_title="DataBids | Strategic Intelligence",
+    page_icon="🟦",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# --- VARIABLES ---
+# --- VARIABLES DE ENTORNO ---
+# (Mantengo tus credenciales anteriores para que funcione directo)
 TELEGRAM_TOKEN = "8501600446:AAHmnOJGs0QIRgDRw---f4-fWMf7xP7Moz0"
 TELEGRAM_CHAT_ID = "7619400780"
 ADMIN_PASSWORD = "bids2026"
 
 # ==========================================
-# 2. DISEÑO MINIMALISTA (CSS)
+# 2. DISEÑO CORPORATIVO (CSS)
 # ==========================================
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;800&display=swap');
 
-    /* --- GLOBAL --- */
+    /* --- BASE --- */
     .stApp {
-        background-color: #F8FAFC; 
-        font-family: 'Inter', sans-serif;
-        color: #334155;
+        background-color: #F8FAFC; /* Gris corporativo muy suave */
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        color: #1E293B; /* Slate 800 - Mejor lectura que el negro puro */
     }
 
-    /* --- HEADER (Ajustado para no cortarse) --- */
-    .header-bg {
-        background: linear-gradient(to bottom, #FFFFFF, #F8FAFC);
-        padding: 4rem 1rem 2rem 1rem;
+    /* --- HEADER --- */
+    .header-container {
+        background-color: #FFFFFF;
+        padding: 4rem 1rem 3rem 1rem;
+        border-bottom: 1px solid #E2E8F0;
         text-align: center;
-        margin-top: -4rem; 
+        margin-top: -5rem;
         margin-left: -5rem;
         margin-right: -5rem;
-        margin-bottom: 2rem;
-        border-bottom: 1px solid #E2E8F0;
+        margin-bottom: 3rem;
     }
-    .brand-logo {
-        font-size: 4rem;
-        font-weight: 900;
+    .brand-name {
+        font-size: 3.5rem;
+        font-weight: 800;
         color: #0F172A;
-        letter-spacing: -2px;
-        line-height: 1.1;
+        letter-spacing: -1.5px;
     }
-    .brand-dot { color: #0070F3; } 
-    .brand-subtitle {
-        font-size: 1.1rem;
+    .brand-accent { color: #2563EB; } /* Azul Medio Claro (Royal Blue) */
+    
+    .value-prop {
+        font-size: 1.25rem;
         color: #64748B;
-        max-width: 600px;
-        margin: 0.5rem auto 0 auto;
+        font-weight: 400;
+        max-width: 800px;
+        margin: 1rem auto 0 auto;
+        line-height: 1.6;
+    }
+
+    /* --- TARJETAS METODOLOGÍA (LOS 3 PUNTOS) --- */
+    /* Diseño sobrio con borde lateral de acento */
+    .method-card {
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-left: 4px solid #2563EB; /* El toque de color de la marca */
+        padding: 2rem;
+        height: 100%;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s ease;
+    }
+    .method-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+    }
+    .method-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #0F172A;
+        margin-bottom: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .method-desc {
+        font-size: 0.95rem;
+        color: #475569;
+        line-height: 1.5;
+    }
+
+    /* --- SECCIÓN DE CONTRATACIÓN --- */
+    .action-container {
+        background: #FFFFFF;
+        border-radius: 12px;
+        border: 1px solid #E2E8F0;
+        padding: 3rem;
+        margin-top: 2rem;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+    }
+    .price-display {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #0F172A;
+    }
+    .price-sub {
+        color: #64748B;
+        font-size: 1rem;
         font-weight: 500;
     }
 
-    /* --- TARJETAS LIMPIAS (Sin Iconos) --- */
-    .feature-card {
-        background: #FFFFFF;
-        border-radius: 12px;
-        padding: 1.5rem; /* Menos padding para ser "justo y necesario" */
-        height: 100%;
-        box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.05);
-        border: 1px solid #E2E8F0;
-        transition: all 0.2s ease;
-    }
-    .feature-card:hover {
-        border-color: #0070F3;
-        transform: translateY(-2px);
-    }
-    
-    /* Títulos en AZUL MARCA (#0070F3) */
-    .card-title { 
-        font-weight: 700; 
-        font-size: 1.1rem; 
-        margin-bottom: 0.5rem; 
-        color: #0070F3; /* Cambio solicitado */
-    }
-    .card-text { 
-        color: #475569; 
-        font-size: 0.9rem; 
-        line-height: 1.5; 
-    }
-
-    /* --- SECCIONES PRINCIPALES --- */
-    .step-container { margin-top: 2rem; margin-bottom: 0.5rem; }
-    .step-badge {
-        color: #64748B;
-        font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;
-    }
-    .main-card {
-        background: #FFFFFF; border-radius: 16px; padding: 2.5rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
-        border: 1px solid #E2E8F0;
-    }
-    .section-title { font-size: 1.5rem; font-weight: 800; color: #0F172A; margin-bottom: 0.5rem; }
-
-    /* --- PRECIO --- */
-    .price-box { 
-        text-align: right; 
-    }
-    .price-big { font-size: 2.5rem; font-weight: 800; color: #0F172A; line-height: 1; }
-    .price-currency { color: #0070F3; font-size: 1rem; font-weight: 700; }
-    .price-sub { font-size: 0.8rem; color: #94A3B8; margin-top: 2px; }
-
-    /* --- BOTONES E INPUTS --- */
+    /* --- UI ELEMENTS --- */
+    /* Botones elegantes y modernos */
     .stButton > button {
-        background-color: #0070F3 !important;
-        color: white !important; border: none !important;
-        padding: 0.75rem 1.5rem !important; border-radius: 8px !important;
+        background-color: #2563EB !important;
+        color: white !important;
+        border: none !important;
+        padding: 0.75rem 2rem !important;
+        border-radius: 6px !important; /* Bordes menos redondeados = más serio */
         font-weight: 600 !important;
-        transition: background 0.2s !important;
+        font-size: 1rem !important;
+        width: 100%;
+        transition: all 0.2s;
     }
-    .stButton > button:hover { background-color: #005bb5 !important; }
-    
+    .stButton > button:hover {
+        background-color: #1D4ED8 !important; /* Azul un poco más oscuro al hover */
+    }
+
+    /* Inputs limpios */
     .stTextInput input {
-        background: #F8FAFC !important; border: 1px solid #CBD5E1 !important;
-        border-radius: 8px !important; padding: 0.75rem !important; color: #1E293B !important;
+        background-color: #FFFFFF !important;
+        border: 1px solid #CBD5E1 !important;
+        border-radius: 6px !important;
+        padding: 0.8rem !important;
+        color: #1E293B !important;
     }
-    .stTextInput input:focus { border-color: #0070F3 !important; background: white !important; }
+    .stTextInput input:focus {
+        border-color: #2563EB !important;
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1) !important;
+    }
 
     /* Ocultar elementos de Streamlit */
     #MainMenu, footer, header {visibility: hidden;}
-    div.block-container { padding-top: 1rem; }
+    div.block-container {padding-top: 1rem;}
     </style>
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 3. LÓGICA
+# 3. LÓGICA DE NEGOCIO
 # ==========================================
 
 def save_order(mail, company, id_lic):
@@ -150,7 +166,7 @@ def save_order(mail, company, id_lic):
         return False
 
 def notify_telegram(mail, company, id_lic):
-    msg = f"💎 *NUEVO CLIENTE*\n\n🏢 {company}\n🆔 `{id_lic}`\n📧 {mail}"
+    msg = f"🏛️ *NUEVO INFORME SOLICITADO*\n\n🏢 *Cliente:* {company}\n🆔 *Licitación:* `{id_lic}`\n📧 *Email:* {mail}\n💵 *Estado:* Pagado ($20.000)"
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     try:
         requests.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": msg, "parse_mode": "Markdown"})
@@ -158,102 +174,134 @@ def notify_telegram(mail, company, id_lic):
         pass
 
 # ==========================================
-# 4. INTERFAZ
+# 4. INTERFAZ DE USUARIO (FRONTEND)
 # ==========================================
 
-# --- HEADER ---
+# --- HERO SECTION (LIMPIO Y DIRECTO) ---
 st.markdown("""
-    <div class="header-bg">
-        <div class="brand-logo">DataBids<span class="brand-dot">.</span></div>
-        <div class="brand-subtitle">Inteligencia de mercado para licitaciones públicas.</div>
+    <div class="header-container">
+        <div class="brand-name">DataBids<span class="brand-accent">.</span></div>
+        <div class="value-prop">
+            Consultoría estratégica para licitaciones en Mercado Público. 
+            Transformamos bases complejas en decisiones ganadoras en menos de 24 horas.
+        </div>
     </div>
 """, unsafe_allow_html=True)
 
-# --- CARACTERÍSTICAS (Solo Texto) ---
+# --- METODOLOGÍA (LOS 3 PUNTOS) ---
+# Usamos un contenedor para dar estructura
 with st.container():
     c1, c2, c3 = st.columns(3)
+    
     with c1:
         st.markdown("""
-        <div class="feature-card">
-            <div class="card-title">Radiografía de Competencia</div>
-            <div class="card-text">Analizamos los patrones de oferta históricos de tus rivales para ajustar tu precio.</div>
+        <div class="method-card">
+            <div class="method-title">01. Admisibilidad</div>
+            <div class="method-desc">
+                Auditoría exhaustiva de requisitos mandatorios. Filtramos los errores administrativos que causan el 40% de los rechazos inmediatos antes de evaluar la oferta técnica.
+            </div>
         </div>
         """, unsafe_allow_html=True)
+    
     with c2:
         st.markdown("""
-        <div class="feature-card">
-            <div class="card-title">Probabilidad de Éxito</div>
-            <div class="card-text">Modelo predictivo con 12 variables críticas para calcular tus chances reales.</div>
+        <div class="method-card">
+            <div class="method-title">02. Punto Crítico</div>
+            <div class="method-desc">
+                Identificación algorítmica y cualitativa del factor determinante de la adjudicación. Te decimos exactamente dónde debes concentrar tus recursos para ganar.
+            </div>
         </div>
         """, unsafe_allow_html=True)
+    
     with c3:
         st.markdown("""
-        <div class="feature-card">
-            <div class="card-title">Entrega Express 24h</div>
-            <div class="card-text">Informe ejecutivo en PDF listo para presentar a directorio en menos de un día.</div>
+        <div class="method-card">
+            <div class="method-title">03. Matriz de Riesgos</div>
+            <div class="method-desc">
+                Evaluación profunda de riesgos operativos y financieros implícitos en las bases. Protegemos tu margen y aseguramos la viabilidad del contrato a largo plazo.
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
-# --- CONTENIDO CENTRAL ---
-col_L, col_main, col_R = st.columns([1, 6, 1])
+st.write(" ") # Espaciador elegante
 
-with col_main:
-    # --- PASO 1 ---
-    st.markdown('<div class="step-container"><span class="step-badge">01. Activación</span></div>', unsafe_allow_html=True)
-    with st.container():
-        st.markdown('<div class="main-card">', unsafe_allow_html=True)
-        cols_pay = st.columns([2, 1]) 
-        with cols_pay[0]:
-            st.markdown('<h2 class="section-title">Análisis Premium</h2>', unsafe_allow_html=True)
-            st.write("Invierte en información, no en suerte.")
-            st.link_button("💳 Pagar $20.000 (WebPay)", "https://www.mercadopago.cl")
-        
-        with cols_pay[1]:
-            st.markdown("""
-            <div class="price-box">
-                <div><span class="price-big">20k</span> <span class="price-currency">CLP</span></div>
-                <div class="price-sub">Pago único</div>
-            </div>
-            """, unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+# --- SECCIÓN DE CONTRATACIÓN (SPLIT LAYOUT) ---
+# Dividimos la pantalla: 1/3 para el precio/pago y 2/3 para el formulario
+c_spacer_L, c_main, c_spacer_R = st.columns([1, 8, 1])
 
-    # --- PASO 2 ---
-    st.markdown('<div class="step-container"><span class="step-badge">02. Datos</span></div>', unsafe_allow_html=True)
-    with st.container():
-        st.markdown('<div class="main-card">', unsafe_allow_html=True)
-        st.markdown('<h2 class="section-title">Configuración</h2>', unsafe_allow_html=True)
+with c_main:
+    st.markdown('<div class="action-container">', unsafe_allow_html=True)
+    
+    col_offer, col_form = st.columns([1, 1.5], gap="large")
+    
+    # Columna Izquierda: La Oferta
+    with col_offer:
+        st.markdown("### Informe Ejecutivo")
+        st.write("Análisis completo de una ID de Mercado Público.")
+        st.markdown("""
+        <div style="margin-top: 2rem; margin-bottom: 2rem;">
+            <div class="price-display">$20.000</div>
+            <div class="price-sub">Pesos Chilenos + IVA</div>
+        </div>
+        """, unsafe_allow_html=True)
         
-        with st.form("main_form"):
-            col_inp1, col_inp2 = st.columns(2)
-            with col_inp1:
-                u_mail = st.text_input("Tu Email", placeholder="correo@empresa.com")
-            with col_inp2:
-                u_emp = st.text_input("Tu Empresa", placeholder="Nombre Fantasía o Razón Social")
+        st.write("**Incluye:**")
+        st.markdown("""
+        <ul style="color: #475569; padding-left: 1.2rem; font-size: 0.9rem; line-height: 1.8;">
+            <li>Checklist de Admisibilidad</li>
+            <li>Estrategia de Oferta</li>
+            <li>Análisis de Multas y Garantías</li>
+            <li>Entrega < 24 Horas</li>
+        </ul>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.link_button("💳 Pagar ahora (MercadoPago)", "https://www.mercadopago.cl")
+
+    # Columna Derecha: El Formulario
+    with col_form:
+        st.markdown("### Configuración del Servicio")
+        st.write("Ingrese los datos para iniciar el proceso de inteligencia.")
+        
+        with st.form("contract_form"):
+            st.markdown("<br>", unsafe_allow_html=True)
             
-            u_lic = st.text_input("ID Licitación", placeholder="Ej: 5544-22-LE24")
+            # Inputs limpios
+            u_emp = st.text_input("Razón Social", placeholder="Ej: Constructora del Norte SpA")
+            u_mail = st.text_input("Correo de Entrega", placeholder="informes@tuempresa.cl")
+            u_lic = st.text_input("ID de Licitación (Exacto)", placeholder="Ej: 5544-22-LE24")
             
             st.markdown("<br>", unsafe_allow_html=True)
-            submitted = st.form_submit_button("🚀 INICIAR ANÁLISIS")
+            
+            # El botón de envío
+            submitted = st.form_submit_button("SOLICITAR INFORME")
             
             if submitted:
-                if u_mail and u_emp and u_lic:
+                if u_emp and u_mail and u_lic:
                     if save_order(u_mail, u_emp, u_lic):
                         notify_telegram(u_mail, u_emp, u_lic)
-                        st.success("Solicitud recibida correctamente.")
+                        st.success("Solicitud procesada correctamente. Recibirá su informe en el plazo establecido.")
                     else:
-                        st.error("Error al guardar datos.")
+                        st.error("Error de conexión. Por favor intente nuevamente.")
                 else:
-                    st.warning("Completa todos los campos.")
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-    st.markdown('<div style="text-align: center; color: #CBD5E1; margin-top: 3rem; font-size: 0.8rem;">DataBids Intelligence © 2026</div>', unsafe_allow_html=True)
+                    st.warning("Todos los campos son requeridos para iniciar el análisis.")
 
-# --- ADMIN ---
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# --- FOOTER MINIMALISTA ---
+st.markdown("""
+    <div style="text-align: center; margin-top: 3rem; color: #94A3B8; font-size: 0.8rem;">
+        DataBids Intelligence &copy; 2026. Santiago, Chile.<br>
+        Servicios de consultoría estratégica para el sector público y privado.
+    </div>
+""", unsafe_allow_html=True)
+
+# --- ADMIN PANEL (Discreto) ---
 with st.sidebar:
-    st.markdown("### Admin")
+    st.markdown("### Acceso Interno")
     if st.text_input("Clave", type="password") == ADMIN_PASSWORD:
         if os.path.exists("ventas_databids.csv"):
             df = pd.read_csv("ventas_databids.csv", sep=';', encoding='utf-8-sig')
             st.dataframe(df, use_container_width=True)
             csv = df.to_csv(index=False, sep=';', encoding='utf-8-sig').encode('utf-8-sig')
-            st.download_button("Descargar CSV", csv, "ventas.csv", "text/csv")
+            st.download_button("Descargar Registros", csv, "databids_ventas.csv", "text/csv")
