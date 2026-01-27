@@ -2,200 +2,134 @@ import streamlit as st
 import pandas as pd
 import requests
 import os
+import re
 from datetime import datetime
 
-# --- CONFIGURACIÓN DE PÁGINA ---
+# ==========================================
+# 1. CONFIGURACIÓN E INICIALIZACIÓN
+# ==========================================
+
+# Configuración de la página (Debe ser el primer comando de Streamlit)
 st.set_page_config(
-    page_title="DataBids | Consultoría Pro",
+    page_title="DataBids | Inteligencia Estratégica",
     page_icon="📈",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# --- DISEÑO EXPERTO (CSS CUSTOM) ---
-st.markdown("""
+# --- CLASE DE CONFIGURACIÓN SEGURA ---
+class Config:
+    """Maneja las configuraciones y secretos de forma segura."""
+    # PRECIO
+    PRICE = 20000
+    
+    # NOMBRE DEL ARCHIVO DE DATOS
+    DATA_FILE = "ventas_databids.csv"
+
+    @staticmethod
+    def get_telegram_creds():
+        """
+        Intenta obtener credenciales de st.secrets.
+        Si no existen, devuelve None para evitar crasheos.
+        """
+        try:
+            return st.secrets["telegram"]["token"], st.secrets["telegram"]["chat_id"]
+        except (FileNotFoundError, KeyError):
+            return None, None
+
+    @staticmethod
+    def get_admin_password():
+        """Obtiene pass de admin o usa uno por defecto inseguro si no hay config."""
+        try:
+            return st.secrets["admin"]["password"]
+        except (FileNotFoundError, KeyError):
+            return "bids2026"  # Contraseña de respaldo (solo para desarrollo)
+
+# ==========================================
+# 2. ESTILOS CSS (DISEÑO)
+# ==========================================
+CUSTOM_CSS = """
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
-
-    /* Reset y Estilo Global */
-    .stApp {
-        background-color: #FFFFFF;
-        font-family: 'Inter', sans-serif;
-        color: #111827;
-    }
-
-    /* NOMBRE GIGANTE DATABIDS */
-    .hero-title {
-        color: #0070F3;
-        font-weight: 900;
-        font-size: 6rem !important; /* Tamaño monumental */
-        text-align: center;
-        margin-top: -3rem;
-        margin-bottom: 0px;
-        letter-spacing: -4px;
-        animation: fadeIn 1.5s ease;
-    }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     
-    .hero-subtitle {
-        text-align: center;
-        color: #111827;
-        font-weight: 700;
-        font-size: 2rem;
-        margin-top: -10px;
-        margin-bottom: 1rem;
-    }
-
-    .hero-description {
-        text-align: center;
-        color: #4B5563;
-        font-size: 1.2rem;
-        max-width: 850px;
-        margin: 0 auto 4rem auto;
-        line-height: 1.6;
-    }
-
-    /* Tarjetas de Contenido */
-    .card {
-        background: #FFFFFF;
-        border: 1px solid #E5E7EB;
-        border-radius: 24px;
-        padding: 3rem;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
-        transition: transform 0.3s ease;
-    }
-
-    /* Características (Features) */
-    .feature-item {
-        padding: 2rem;
-        border-radius: 20px;
-        background: #F8FAFC;
-        border: 1px solid #F1F5F9;
-        text-align: center;
-        height: 100%;
-    }
-    .feature-title { font-weight: 700; font-size: 1.2rem; color: #0F172A; margin-bottom: 0.5rem; }
-    .feature-text { color: #64748B; font-size: 1rem; }
-
-    /* Botones de Acción */
-    .stLinkButton > a, .stButton > button {
-        background: #0070F3 !important;
-        color: #FFFFFF !important;
-        border-radius: 14px !important;
-        padding: 1rem 2rem !important;
-        font-weight: 700 !important;
-        font-size: 1.1rem !important;
-        width: 100%;
-        border: none !important;
-        box-shadow: 0 4px 14px 0 rgba(0, 118, 255, 0.39);
-    }
-    .stLinkButton > a:hover {
-        background: #0061d5 !important;
-        box-shadow: 0 6px 20px rgba(0, 118, 255, 0.23);
-        transform: translateY(-2px);
-    }
-
-    /* Formulario */
-    .stTextInput input {
-        border: 1px solid #E2E8F0 !important;
-        border-radius: 12px !important;
-        padding: 12px !important;
-        font-size: 1rem !important;
-    }
-
-    /* Limpieza UI */
-    #MainMenu, footer, header {visibility: hidden;}
+    .stApp { background-color: #FFFFFF; font-family: 'Inter', sans-serif; color: #111827; }
     
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
+    /* Títulos */
+    h1 { color: #0070F3 !important; font-weight: 800; font-size: 2.5rem !important; text-align: center; }
+    .subtitle { text-align: center; color: #4B5563; font-size: 1.1rem; max-width: 800px; margin: 0 auto 2rem auto; }
+    
+    /* Tarjetas */
+    .feature-card, .section-card {
+        background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 16px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); padding: 2rem;
     }
+    .section-card { padding: 2.5rem; margin-top: 1rem; }
+    
+    /* Elementos */
+    .feature-icon { color: #0070F3; font-size: 1.5rem; margin-bottom: 1rem; }
+    .feature-title { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .feature-desc { color: #4B5563; font-size: 0.95rem; }
+    .step-header { font-weight: 700; color: #4B5563; margin-top: 3rem; margin-bottom: 0.5rem; text-transform: uppercase; font-size: 0.85rem;}
+    .price-tag { font-size: 2.5rem; font-weight: 800; color: #111827; }
+    
+    /* Botones y Inputs */
+    div.stButton > button, div.stLinkButton > a {
+        background-color: #0070F3 !important; color: white !important; border: none !important;
+        border-radius: 12px !important; padding: 0.75rem 1.5rem !important; font-weight: 600 !important;
+        width: 100%; transition: all 0.2s ease;
+    }
+    div.stButton > button:hover, div.stLinkButton > a:hover {
+        background-color: #005bb5 !important; transform: translateY(-1px);
+    }
+    .stTextInput input { border: 1px solid #D1D5DB !important; border-radius: 8px !important; }
+    
+    /* Ocultar interfzas Streamlit */
+    #MainMenu, footer, header { visibility: hidden; }
     </style>
-""", unsafe_allow_html=True)
+"""
 
-# --- BACKEND (LOGIC) ---
-def send_telegram(mail, company, id_lic):
-    token = "8501600446:AAHmnOJGs0QIRgDRw---f4-fWMf7xP7Moz0"
-    chat_id = "7619400780"
-    msg = f"💎 *NUEVO PROYECTO DATABIDS*\n\n🏢 *Empresa:* {company}\n🆔 *ID:* {id_lic}\n📧 *Email:* {mail}"
-    try:
-        requests.post(f"https://api.telegram.org/bot{token}/sendMessage", 
-                      json={"chat_id": chat_id, "text": msg, "parse_mode": "Markdown"})
-    except: pass
+# ==========================================
+# 3. LÓGICA DE NEGOCIO (BACKEND)
+# ==========================================
+class BusinessLogic:
+    def __init__(self):
+        self.file_path = Config.DATA_FILE
+        self._init_db()
 
-def save_to_csv(mail, company, id_lic):
-    db_file = "ventas_databids.csv"
-    new_entry = pd.DataFrame([[datetime.now().strftime("%Y-%m-%d %H:%M"), mail, company, id_lic, "20000"]], 
-                             columns=["Fecha", "Email", "Empresa", "ID_Lic", "Monto"])
-    if os.path.exists(db_file):
-        new_entry.to_csv(db_file, mode='a', header=False, index=False, sep=';', encoding='utf-8-sig')
-    else:
-        new_entry.to_csv(db_file, index=False, sep=';', encoding='utf-8-sig')
+    def _init_db(self):
+        """Crea el CSV si no existe."""
+        if not os.path.exists(self.file_path):
+            df = pd.DataFrame(columns=["Fecha", "Email", "Empresa", "ID_Lic", "Estado", "Monto"])
+            df.to_csv(self.file_path, sep=';', index=False, encoding='utf-8-sig')
 
-# --- INTERFAZ ---
+    def validate_email(self, email):
+        return bool(re.match(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$", email))
 
-# Hero Section
-st.markdown('<h1 class="hero-title">DataBids</h1>', unsafe_allow_html=True)
-st.markdown('<div class="hero-subtitle">Informes y análisis estratégicos de licitaciones</div>', unsafe_allow_html=True)
-st.markdown('<div class="hero-description">Potenciamos tu competitividad en Mercado Público mediante inteligencia de datos avanzada. Toma decisiones estratégicas basadas en hechos y maximiza tus tasas de adjudicación.</div>', unsafe_allow_html=True)
+    def register_order(self, email, company, lic_id):
+        """Guarda la orden en el CSV."""
+        timestamp = datetime.now().strftime("%d-%m-%Y %H:%M")
+        new_row = pd.DataFrame([{
+            "Fecha": timestamp, "Email": email, "Empresa": company, 
+            "ID_Lic": lic_id, "Estado": "SOLICITADO", "Monto": Config.PRICE
+        }])
+        try:
+            new_row.to_csv(self.file_path, mode='a', header=False, index=False, sep=';', encoding='utf-8-sig')
+            return True
+        except Exception as e:
+            st.error(f"Error guardando datos: {e}")
+            return False
 
-# Grid de Beneficios
-b1, b2, b3 = st.columns(3, gap="large")
-with b1:
-    st.markdown('<div class="feature-item"><p class="feature-title">📊 Competencia</p><p class="feature-text">Descubre el comportamiento histórico y precios de tus rivales.</p></div>', unsafe_allow_html=True)
-with b2:
-    st.markdown('<div class="feature-item"><p class="feature-title">🛡️ Factibilidad</p><p class="feature-text">Análisis riguroso de cumplimiento para evitar descalificaciones.</p></div>', unsafe_allow_html=True)
-with b3:
-    st.markdown('<div class="feature-item"><p class="feature-title">⏱️ Rapidez</p><p class="feature-text">Informes ejecutivos entregados en menos de 24 horas hábiles.</p></div>', unsafe_allow_html=True)
-
-st.write("")
-st.write("")
-
-# Área de Acción (Pago y Registro integrados)
-col_left, col_right = st.columns([1, 1.2], gap="large")
-
-with col_left:
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("💳 Contratar Servicio")
-    st.write("Inicia tu análisis estratégico de inmediato.")
-    st.markdown("<h2 style='color:#111827;'>$20.000 <span style='font-size:1.2rem; color:#6B7280; font-weight:400;'>CLP</span></h2>", unsafe_allow_html=True)
-    st.markdown("""
-        <div style="color: #4B5563; margin-bottom: 20px;">
-        ✓ Reporte PDF Detallado<br>
-        ✓ Verificación de ID Mercado Público<br>
-        ✓ Sugerencias de Oferta Económica
-        </div>
-    """, unsafe_allow_html=True)
-    st.link_button("ACCEDER A PAGAR", "https://www.mercadopago.cl") # Link de pago
-    st.markdown('</div>', unsafe_allow_html=True)
-
-with col_right:
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("📝 Datos de Licitación")
-    st.write("Completa los datos tras realizar tu transacción.")
-    with st.form("form_final", clear_on_submit=True):
-        email_input = st.text_input("Correo electrónico", placeholder="ejemplo@empresa.com")
-        empresa_input = st.text_input("Razón Social", placeholder="Nombre de tu empresa")
-        id_input = st.text_input("ID de Licitación", placeholder="Ej: 1234-56-LP24")
+    def send_notification(self, email, company, lic_id):
+        """Envía notificación a Telegram si las credenciales existen."""
+        token, chat_id = Config.get_telegram_creds()
         
-        btn_confirmar = st.form_submit_button("ENVIAR SOLICITUD")
-        
-        if btn_confirmar:
-            if email_input and id_input:
-                save_to_csv(email_input, empresa_input, id_input)
-                send_telegram(email_input, empresa_input, id_input)
-                st.balloons()
-                st.success("✅ ¡Recibido! Tu analista experto ha sido notificado.")
-            else:
-                st.warning("⚠️ El Correo y el ID son obligatorios.")
-    st.markdown('</div>', unsafe_allow_html=True)
+        if not token or not chat_id:
+            # Si no hay tokens, no hacemos nada (o imprimimos en consola local)
+            print("⚠️ Telegram no configurado. Notificación saltada.")
+            return
 
-# Admin Sidebar
-with st.sidebar:
-    st.markdown("### ⚙️ Administración")
-    if st.text_input("Clave de Acceso", type="password") == "bids2026":
-        if os.path.exists("ventas_databids.csv"):
-            st.write("Ventas Recientes:")
-            st.dataframe(pd.read_csv("ventas_databids.csv", sep=';'))
+        msg = (f"🚀 *NUEVA ORDEN*\n\n🏢 *Empresa:* {company}\n"
+               f"🆔 *Lic:* `{lic_
 
 
 
