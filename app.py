@@ -14,10 +14,9 @@ st.set_page_config(
 )
 
 # --- 2. GESTIÓN DE ERRORES Y SECRETOS ---
-# Esta función evita que la app se rompa si no hay claves configuradas
 def get_secret(section, key, default=None):
+    """Obtiene secretos de forma segura sin romper la app si faltan."""
     try:
-        # Intenta acceder a los secretos de forma segura
         if hasattr(st, 'secrets') and section in st.secrets:
             return st.secrets[section][key]
     except Exception:
@@ -36,42 +35,7 @@ st.markdown("""
     .stTextInput input { border-radius: 8px; }
     #MainMenu, footer, header { visibility: hidden; }
     </style>
-""", unsafe_allow_html=True)
 
-# --- 4. LÓGICA ---
-DATA_FILE = "ventas_databids.csv"
-
-def save_data(email, company, lic_id):
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
-    new_data = pd.DataFrame([{
-        "Fecha": timestamp, "Email": email, "Empresa": company, 
-        "ID_Lic": lic_id, "Monto": 20000
-    }])
-    
-    try:
-        if os.path.exists(DATA_FILE):
-            new_data.to_csv(DATA_FILE, mode='a', header=False, index=False, sep=';', encoding='utf-8-sig')
-        else:
-            new_data.to_csv(DATA_FILE, index=False, sep=';', encoding='utf-8-sig')
-        return True
-    except PermissionError:
-        st.error("❌ Error: Cierra el archivo Excel antes de guardar.")
-        return False
-    except Exception as e:
-        st.error(f"❌ Error inesperado: {e}")
-        return False
-
-def send_telegram(email, company, lic_id):
-    token = get_secret("telegram", "token")
-    chat_id = get_secret("telegram", "chat_id")
-    
-    if not token or not chat_id:
-        print("⚠️ Telegram no configurado (modo local)")
-        return
-
-    msg = f"🚀 NUEVA VENTA:\nEmpresa: {company}\nLic: {lic_id}\nEmail: {email}"
-    try:
-        requests.post(f"https://api.telegram.org/bot{token}/sendMessage",
 
 
 
